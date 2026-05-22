@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login - Prototipo</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}" />
+</head>
+<body>
+  <main class="login-container">
+    <h1>Entrar</h1>
+
+    <div th:if="${param.error}" class="alert alert-error" role="alert">
+      Usuário ou senha inválidos.
+    </div>
+    <div th:if="${param.logout}" class="alert alert-info" role="status">
+      Você saiu da sessão.
+    </div>
+
+    <form th:action="@{/login}" method="post" class="login-form">
+      <label for="username">Usuário</label>
+      <input id="username" name="username" type="text" required autofocus />
+
+      <label for="password">Senha</label>
+      <input id="password" name="password" type="password" required />
+
+      <button type="submit">Entrar</button>
+    </form>
+
+    <p class="hint">Use <strong>usuario</strong> / <strong>senha123</strong> para testar.</p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <title>Início - Prototipo</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}" />
+</head>
+<body>
+  <main class="home-container">
+    <h1>Bem-vindo, <span th:text="${username}">usuário</span>!</h1>
+    <p>Você está autenticado no protótipo.</p>
+
+    <form th:action="@{/logout}" method="post">
+      <button type="submit">Sair</button>
+    </form>
+  </main>
+</body>
+</html>
