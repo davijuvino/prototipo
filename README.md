@@ -2,6 +2,8 @@
 
 Protótipo mínimo de **login de usuário** em Spring Boot 3 + Kotlin — somente endpoint REST, sem tela/form.
 
+Camadas seguem o padrão do projeto Komga (`interfaces/api/rest`, `interfaces/api/rest/dto`, `infrastructure/security`).
+
 ## Stack
 
 - Kotlin 1.9 (JDK 17)
@@ -11,14 +13,14 @@ Protótipo mínimo de **login de usuário** em Spring Boot 3 + Kotlin — soment
 
 ## Endpoint
 
-### `POST /api/auth/login`
+### `POST /api/v1/login`
 
 Autentica usando `AuthenticationManager` + `InMemoryUserDetailsManager`.
 
 **Request**
 
 ```json
-POST /api/auth/login
+POST /api/v1/login
 Content-Type: application/json
 
 { "username": "usuario", "password": "senha123" }
@@ -47,7 +49,7 @@ A aplicação sobe em <http://localhost:8080>.
 Exemplo de teste manual com `curl`:
 
 ```bash
-curl -i -X POST http://localhost:8080/api/auth/login \
+curl -i -X POST http://localhost:8080/api/v1/login \
   -H 'Content-Type: application/json' \
   -d '{"username":"usuario","password":"senha123"}'
 ```
@@ -58,17 +60,26 @@ curl -i -X POST http://localhost:8080/api/auth/login \
 | --------- | --------- |
 | `usuario` | `senha123`|
 
-Configurado em `SecurityConfiguration.kt` via `InMemoryUserDetailsManager` + `BCryptPasswordEncoder`. Substituir por um `UserDetailsService` apoiado em banco quando o protótipo evoluir.
+Configurado em `InMemoryUserDetailsConfiguration.kt` via `InMemoryUserDetailsManager` + `BCryptPasswordEncoder`. Substituir por um `UserDetailsService` apoiado em banco quando o protótipo evoluir.
 
-## Estrutura
+## Estrutura (estilo Komga)
 
 ```
 src/main/kotlin/br/com/davijuvino/prototipologin
-├── PrototipoLoginApplication.kt   # entrypoint do Spring Boot
-├── config
-│   └── SecurityConfiguration.kt   # filtro de seguranca + usuario em memoria
-└── web
-    └── AuthController.kt          # POST /api/auth/login
+├── Application.kt                          # entrypoint Spring Boot
+├── infrastructure
+│   └── security
+│       ├── SecurityConfiguration.kt        # SecurityFilterChain + AuthenticationManager
+│       ├── PasswordEncoderConfiguration.kt # BCryptPasswordEncoder
+│       └── InMemoryUserDetailsConfiguration.kt
+└── interfaces
+    └── api
+        └── rest
+            ├── LoginController.kt          # POST /api/v1/login
+            └── dto
+                ├── LoginRequestDto.kt
+                ├── LoginResponseDto.kt
+                └── ErrorResponseDto.kt
 ```
 
 ## Testes

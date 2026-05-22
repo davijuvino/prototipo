@@ -23,50 +23,46 @@ class LoginFlowTests {
   private fun json(body: Map<String, String>) = objectMapper.writeValueAsString(body)
 
   @Test
-  fun `POST api auth login com credenciais validas retorna 200 e usuario`() {
+  fun `POST api v1 login com credenciais validas retorna 200 e usuario`() {
     mockMvc
       .perform(
-        post("/api/auth/login")
+        post("/api/v1/login")
           .contentType(MediaType.APPLICATION_JSON)
           .content(json(mapOf("username" to "usuario", "password" to "senha123"))),
-      )
-      .andExpect(status().isOk)
+      ).andExpect(status().isOk)
       .andExpect(jsonPath("$.authenticated").value(true))
       .andExpect(jsonPath("$.username").value("usuario"))
       .andExpect(jsonPath("$.authorities[0]").value("ROLE_USER"))
   }
 
   @Test
-  fun `POST api auth login com senha errada retorna 401`() {
+  fun `POST api v1 login com senha errada retorna 401`() {
     mockMvc
       .perform(
-        post("/api/auth/login")
+        post("/api/v1/login")
           .contentType(MediaType.APPLICATION_JSON)
           .content(json(mapOf("username" to "usuario", "password" to "errada"))),
-      )
-      .andExpect(status().isUnauthorized)
+      ).andExpect(status().isUnauthorized)
       .andExpect(jsonPath("$.error").exists())
   }
 
   @Test
-  fun `POST api auth login com usuario inexistente retorna 401`() {
+  fun `POST api v1 login com usuario inexistente retorna 401`() {
     mockMvc
       .perform(
-        post("/api/auth/login")
+        post("/api/v1/login")
           .contentType(MediaType.APPLICATION_JSON)
           .content(json(mapOf("username" to "fulano", "password" to "qualquer"))),
-      )
-      .andExpect(status().isUnauthorized)
+      ).andExpect(status().isUnauthorized)
   }
 
   @Test
-  fun `POST api auth login com body invalido retorna 400`() {
+  fun `POST api v1 login com body invalido retorna 400`() {
     mockMvc
       .perform(
-        post("/api/auth/login")
+        post("/api/v1/login")
           .contentType(MediaType.APPLICATION_JSON)
           .content(json(mapOf("username" to "", "password" to ""))),
-      )
-      .andExpect(status().isBadRequest)
+      ).andExpect(status().isBadRequest)
   }
 }
