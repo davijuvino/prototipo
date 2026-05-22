@@ -4,8 +4,6 @@ server:
 spring:
   application:
     name: prototipo-login
-  thymeleaf:
-    cache: false
 
 logging:
   level:
