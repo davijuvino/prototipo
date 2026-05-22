@@ -5,10 +5,13 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
+import org.springframework.mock.web.MockHttpSession
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.util.Base64
 import kotlin.test.Test
 
 @SpringBootTest
@@ -20,49 +23,91 @@ class LoginFlowTests {
   @Autowired
   lateinit var objectMapper: ObjectMapper
 
-  private fun json(body: Map<String, String>) = objectMapper.writeValueAsString(body)
+  private fun basicHeader(
+    user: String,
+    pass: String,
+  ): String = "Basic " + Base64.getEncoder().encodeToString("$user:$pass".toByteArray())
 
   @Test
-  fun `POST api v1 login com credenciais validas retorna 200 e usuario`() {
+  fun `POST api v1 login com Basic valido retorna 200 com usuario e cria sessao`() {
+    val mvcResult =
+      mockMvc
+        .perform(
+          post("/api/v1/login").header("Authorization", basicHeader("admin@prototipo.local", "senha123")),
+        ).andExpect(status().isOk)
+        .andExpect(jsonPath("$.email").value("admin@prototipo.local"))
+        .andExpect(jsonPath("$.role").value("ADMIN"))
+        .andReturn()
+
+    val session = mvcResult.request.getSession(false)
+    requireNotNull(session) { "Esperava sessao criada apos login" }
+  }
+
+  @Test
+  fun `POST api v1 login sem Authorization retorna 401`() {
     mockMvc
-      .perform(
-        post("/api/v1/login")
-          .contentType(MediaType.APPLICATION_JSON)
-          .content(json(mapOf("username" to "usuario", "password" to "senha123"))),
-      ).andExpect(status().isOk)
-      .andExpect(jsonPath("$.authenticated").value(true))
-      .andExpect(jsonPath("$.username").value("usuario"))
-      .andExpect(jsonPath("$.authorities[0]").value("ROLE_USER"))
+      .perform(post("/api/v1/login"))
+      .andExpect(status().isUnauthorized)
   }
 
   @Test
   fun `POST api v1 login com senha errada retorna 401`() {
     mockMvc
       .perform(
-        post("/api/v1/login")
-          .contentType(MediaType.APPLICATION_JSON)
-          .content(json(mapOf("username" to "usuario", "password" to "errada"))),
+        post("/api/v1/login").header("Authorization", basicHeader("admin@prototipo.local", "errada")),
       ).andExpect(status().isUnauthorized)
-      .andExpect(jsonPath("$.error").exists())
   }
 
   @Test
   fun `POST api v1 login com usuario inexistente retorna 401`() {
     mockMvc
       .perform(
-        post("/api/v1/login")
-          .contentType(MediaType.APPLICATION_JSON)
-          .content(json(mapOf("username" to "fulano", "password" to "qualquer"))),
+        post("/api/v1/login").header("Authorization", basicHeader("fulano@x.com", "qualquer")),
       ).andExpect(status().isUnauthorized)
   }
 
   @Test
-  fun `POST api v1 login com body invalido retorna 400`() {
+  fun `GET api v1 users me sem autenticacao retorna 401`() {
+    mockMvc
+      .perform(get("/api/v1/users/me"))
+      .andExpect(status().isUnauthorized)
+  }
+
+  @Test
+  fun `fluxo completo login depois users me com sessao funciona`() {
+    val loginResult =
+      mockMvc
+        .perform(
+          post("/api/v1/login").header("Authorization", basicHeader("admin@prototipo.local", "senha123")),
+        ).andExpect(status().isOk)
+        .andReturn()
+
+    val session = loginResult.request.getSession(false) as MockHttpSession
+
+    mockMvc
+      .perform(get("/api/v1/users/me").session(session))
+      .andExpect(status().isOk)
+      .andExpect(jsonPath("$.email").value("admin@prototipo.local"))
+  }
+
+  @Test
+  fun `POST api v1 users cria novo usuario quando autenticado`() {
+    val loginResult =
+      mockMvc
+        .perform(
+          post("/api/v1/login").header("Authorization", basicHeader("admin@prototipo.local", "senha123")),
+        ).andReturn()
+    val session = loginResult.request.getSession(false) as MockHttpSession
+
+    val body = mapOf("email" to "novo@prototipo.local", "password" to "senha-nova-123")
     mockMvc
       .perform(
-        post("/api/v1/login")
+        post("/api/v1/users")
+          .session(session)
           .contentType(MediaType.APPLICATION_JSON)
-          .content(json(mapOf("username" to "", "password" to ""))),
-      ).andExpect(status().isBadRequest)
+          .content(objectMapper.writeValueAsString(body)),
+      ).andExpect(status().isCreated)
+      .andExpect(jsonPath("$.email").value("novo@prototipo.local"))
+      .andExpect(jsonPath("$.role").value("USER"))
   }
 }
